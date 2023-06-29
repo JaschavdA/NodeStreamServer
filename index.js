@@ -63,10 +63,12 @@ const config = {
                 hls: true,
                 hlsFlags:
                     "[hls_time=2:hls_list_size=3:hls_flags=delete_segments]",
-                hlsKeep: true, // to prevent hls file delete after end the stream
+                hlsKeep: false, // to prevent hls file delete after end the stream
                 // dash: true,
                 // dashFlags: "[f=dash:window_size=3:extra_window_size=5]",
                 // dashKeep: false, // to prevent dash file delete after end the stream
+                mp4: true,
+                mp4Flags: "[movflags=frag_keyframe+empty_moov]",
             },
         ],
     },
@@ -106,16 +108,18 @@ nms.on("prePublish", (id, StreamPath, args) => {
         .post("http://localhost:5291/api/VideoStream/ValidateStream", request)
         .then(function (response) {
             //console.log(response.data);
-            if (
-                jsencrypt.verify(
+            var isValid = jsencrypt.verify(
+                JSON.stringify(
                     response.data.originalData,
-                    response.data.signature,
-                    CryptoJS.SHA256
-                )
-            ) {
+                    null,
+                    0
+                ).toLowerCase(),
+                response.data.signature,
+                CryptoJS.SHA256
+            );
+            if (isValid) {
                 isSameUser = response.data.originalData;
             }
-
             if (!isSameUser) {
                 nms.stop();
             }
@@ -126,6 +130,20 @@ nms.on("prePublish", (id, StreamPath, args) => {
         });
 
     //nms.stop();
+});
+
+nms.on("donePublish", (id, StreamPath, args) => {
+    const userName = StreamPath.split("/")[2];
+    axios
+        .get(
+            "http://localhost:5291/api/VideoStream/" + userName + "/StopStream2"
+        )
+        .then(function (response) {
+            console.log(response.data);
+        })
+        .catch(function (error) {
+            console.log(error);
+        });
 });
 
 nms.run();
