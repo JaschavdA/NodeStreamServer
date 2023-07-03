@@ -3,6 +3,11 @@ var ffmpeg = require("fluent-ffmpeg");
 const axios = require("axios");
 var CryptoJS = require("crypto-js");
 const crypto = require("nodejs-jsencrypt");
+var fs = require('fs'),
+    path = require('path'),
+    _ = require('underscore');
+
+
 // const fs = require("fs");
 // var ffmpegPath = "C:\\ffmpeg\\bin\\ffmpeg.exe";
 // if (fs.existsSync(ffmpegPath)) {
@@ -140,6 +145,8 @@ nms.on("donePublish", (id, StreamPath, args) => {
         )
         .then(function (response) {
             console.log(response.data);
+
+            sendFile(userName);
         })
         .catch(function (error) {
             console.log(error);
@@ -147,6 +154,37 @@ nms.on("donePublish", (id, StreamPath, args) => {
 });
 
 nms.run();
+
+function sendFile(username) {
+
+    var dir = `./stream/live/${username}/`;
+    var files = fs.readdirSync(dir);
+
+    // use underscore for max()
+    var fileName =  _.max(files, function (f) {
+        var fullpath = path.join(dir, f);
+
+        // ctime = creation time is used
+        // replace with mtime for modification time
+        return(fs.statSync(fullpath).ctime);
+    });
+
+    console.log("fileName")
+    console.log(fileName);
+
+    var file = fs.readFileSync(`./stream/live/${username}/${fileName}`);
+
+    // const writeableStream = fs.createWriteStream("./StreamClient.txt");
+    const fileData = 'data:@file/mp4;base64,' + file.toString('base64')
+    writeableStream.write(fileData);
+    const request = {
+        title: fileName,
+        contentType: 'mp4',
+        data: fileData
+    }
+    axios
+        .post("http://localhost:5291/api/vod", request)
+}
 // const henk = {
 //     henk: "henk",
 // };
