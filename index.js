@@ -107,7 +107,7 @@ nms.on("prePublish", (id, StreamPath, args) => {
     axios
         .post("http://localhost:5291/api/VideoStream/ValidateStream", request)
         .then(function (response) {
-            //console.log(response.data);
+            console.log("TEST");
             var isValid = jsencrypt.verify(
                 JSON.stringify(
                     response.data.originalData,
