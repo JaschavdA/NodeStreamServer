@@ -3,10 +3,9 @@ var ffmpeg = require("fluent-ffmpeg");
 const axios = require("axios");
 var CryptoJS = require("crypto-js");
 const crypto = require("nodejs-jsencrypt");
-var fs = require('fs'),
-    path = require('path'),
-    _ = require('underscore');
-
+var fs = require("fs"),
+    path = require("path"),
+    _ = require("underscore");
 
 // const fs = require("fs");
 // var ffmpegPath = "C:\\ffmpeg\\bin\\ffmpeg.exe";
@@ -156,34 +155,48 @@ nms.on("donePublish", (id, StreamPath, args) => {
 nms.run();
 
 function sendFile(username) {
-
     var dir = `./stream/live/${username}/`;
     var files = fs.readdirSync(dir);
 
     // use underscore for max()
-    var fileName =  _.max(files, function (f) {
+    var fileName = _.max(files, function (f) {
         var fullpath = path.join(dir, f);
 
         // ctime = creation time is used
         // replace with mtime for modification time
-        return(fs.statSync(fullpath).ctime);
+        return fs.statSync(fullpath).ctime;
     });
 
-    console.log("fileName")
+    console.log("fileName");
     console.log(fileName);
 
     var file = fs.readFileSync(`./stream/live/${username}/${fileName}`);
 
-    // const writeableStream = fs.createWriteStream("./StreamClient.txt");
-    const fileData = 'data:@file/mp4;base64,' + file.toString('base64')
+    const writeableStream = fs.createWriteStream("./StreamClient.txt");
+    const fileData = "data:@file/mp4;base64," + file.toString("base64");
     writeableStream.write(fileData);
-    const request = {
-        title: fileName,
-        contentType: 'mp4',
-        data: fileData
-    }
-    axios
-        .post("http://localhost:5291/api/vod", request)
+
+    var request = {
+        title: username + "/" + fileName,
+        contentType: "mp4",
+        data: fileData,
+    };
+
+    var jsencrypt = new crypto.JSEncrypt();
+    jsencrypt.setPrivateKey(
+        "MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAPENGEJQrppdtJyejNAUrAR0wKN13WzEt2iq3LOrIUuM/iW8Y+gqTBJgq933AkLPXnXOaijNxtis3qPV0V/GF0QykH8u2Q2moZ1nPEcQAbKogO+S6HkXI6H8kEVr3kATZ6vi6nDguLfLqPPt0EjAx/gPvRlHumiIulB9MM6qKzLBAgMBAAECgYA6k8oPY3fqv1bCsKzbbAqZUp31mxDh+7PuVYcoii+fInYoSW2l35F47dEWMY51GduEmVKm88qcoPXBrpYgxgyk5z7QSqHTHjKne3paHmHPg+AIDZ4h9tyROjdg8+eVu9d4EahAUR7jR8IU3jSMfPwXDET7BUQMRbCpAhVsP9Gh2QJBAPWp9/1QEebR91+vAGdy27wDGpGJo4BIET8NF0zyV1Ti2W3rwfmM/yY2igewovNAKFHpz1vlnBxJNBfCuXmTnb8CQQD7MXEl/emFRaOuNpwQ0Tpt1T7YL1uBNot0jqusRUnPcR3LoWNdGt5xWBshSV2SfwjMtbD0LDfeZNneXc9oPk9/AkEAu9zH1QIXPoFQf+5vC60NFkD1X1h3HRF/hsz3BZPJbxOvHF0O0EyfjdRlR64vXn+wlbuMJAV5lTPxzz3M4okdNwJAOq5MLoHoobepCzO6tbsLGUltyvcVO1RQs8P4mt/85DcarM1g9wkl2fipLdeDwotmtNvlIMWLr6qDswzbPREBZQJBAL7gXW4rjst4MB4U5cmPN16J8lrBH4uA0qGHsAWkFTP8W5EgRELAtZrhGfXmEYiE8HBDIjCHeGDGJEdC1JD4fDQ="
+    );
+    var test = JSON.stringify(request, null, 0).toLowerCase();
+    const signature = jsencrypt.sign(test, CryptoJS.SHA256, "sha256");
+
+    console.log(signature);
+
+    var payload = {
+        originalData: request,
+        signature: signature,
+    };
+
+    axios.post("http://localhost:5291/api/vod", payload);
 }
 // const henk = {
 //     henk: "henk",
